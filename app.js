@@ -68,7 +68,7 @@ app.route("/login")
                 if (result === true) {
                     res.render("secrets");
                 } else {
-                    console.log(err);
+                    console.log("Password incorrect!");
                     res.send("Password incorrect!");
                 }
             });
