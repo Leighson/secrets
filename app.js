@@ -2,9 +2,11 @@ require("dotenv").config();
 const ejs = require("ejs");
 const express = require("express");
 const bodyParser = require("body-parser");
-// const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 // const encrypt = require("mongoose-encryption");
-const md5 = require("md5");
+// const md5 = require("md5");
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const app = express();
 
@@ -32,6 +34,8 @@ async function mongoConnect() {
     }
 };
 
+mongoConnect();
+
 const userSchema = new mongoose.Schema({
     email: String,
     password: String
@@ -45,36 +49,35 @@ const User = new mongoose.model("User", userSchema);
 
 // PAGES
 app.get("/", (req, res) => {
-    mongoConnect();
     res.render("home");
 });
 
-app.get("/login", (req, res) => {
-    res.render("login");
-});
+app.route("/login")
+    .get( async (req, res) => {
+        res.render("login");
+    })
 
-app.post("/login", async (req, res) => {
-    const username = req.body.username;
-    const password = md5(req.body.password);
-    let foundUser;
+    .post( async (req, res) => {
 
-    mongoConnect();
-    try {
-        foundUser = await User.findOne({email: username});
-    } catch(err) {
-        console.log(err);
-    } finally {
+        const password = req.body.password;
+        const foundUser = await User.findOne( {email: req.body.username} );
+
         if (foundUser) {
-            if (foundUser.password == password) {
-                res.render("secrets");
-            } else {
-                res.send("Password incorrect!");
-            }
+            console.log(foundUser.password);
+            bcrypt.compare(password, foundUser.password, (err, result) => {
+                if (result === true) {
+                    res.render("secrets");
+                } else {
+                    console.log(err);
+                    res.send("Password incorrect!");
+                }
+            });
         } else {
+            console.log("User not found!");
             res.send("User not found!");
         }
-    }
-});
+    
+    });
 
 app.route("/register")
 
@@ -83,19 +86,24 @@ app.route("/register")
     })
 
     .post(async (req, res) => {
-        const newUser = new User({
-            email: req.body.username,
-            password: md5(req.body.password)
-        });
 
-        try {
-            await newUser.save();
-        } catch(err) {
-            console.log(err);
-        } finally {
-            console.log("New user saved!");
+        bcrypt.hash(req.body.password, saltRounds, (err, hash) => {
+            const newUser = new User({
+                email: req.body.username,
+                password: hash
+            });
+
+            try {
+                newUser.save();
+            } catch(err) {
+                console.log(err);
+            } finally {
+                console.log("New user saved!");
+            }
+
             res.render("secrets");
-        }
+        })
+
     });
 
 
