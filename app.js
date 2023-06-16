@@ -14,7 +14,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 
 app.use(session({
-    secret: "Out little secret.",
+    secret: "Our little secret.",
     resave: false,
     saveUninitialized: false
 }));
